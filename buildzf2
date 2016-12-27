@@ -1,0 +1,98 @@
+#!/bin/bash
+
+export ARCH=x86_64
+export CCOMPILE=$CROSS_COMPILE
+export CROSS_COMPILE=x86_64-linux-android-
+
+clear
+
+echo "---------------SETTING UP ENVIRONMENT---------------"
+start=`date +%s`
+NOW=$(date +"%d-%m-%Y")
+echo "Current Date : $NOW"
+echo "Applying Build Settings"
+export SLEEP=1
+echo "Setting CPU Cores/Threads"
+export CPUS=`nproc`
+echo "Setting Version Number"
+export VER=v$1
+echo "Setting Defconfig"
+export DEFCONFIG=cyanogenmod_zenfone2_defconfig
+echo "Setting bzImage Location For FlareN kernel"
+export BZIMAGE=arch/x86/boot/bzImage
+echo "Enabling Graphite Optimizations"
+export ENABLE_GRAPHITE=true
+echo "Environment Setup Complete Now Moving To Compiling"
+
+
+#Build
+sleep $SLEEP
+#make clean
+echo "Starting Build Process"
+export USE_CCACHE=1
+sleep $SLEEP
+if [ -f .config ];
+then
+   echo ".config exists"
+   echo "Starting Compilation"
+   echo ""
+   echo ""
+   echo ""
+   echo "------------------COMPILING----------------------"
+   sleep $SLEEP
+else
+   echo ".config Does Not Exists"
+   echo "Compiling From $DEFCONFIG"
+   make $DEFCONFIG
+   echo "Starting Compilation"
+   sleep $SLEEP
+fi
+make $EV -j$CPUS 2>&1 | tee build.log
+
+if [ -f $BZIMAGE ];
+then
+   echo "$BZIMAGE exists"
+   echo "-------------------SUCCESS-----------------------"
+   echo ""
+   echo ""
+   echo ""
+   sleep $SLEEP
+else
+   echo "-----------------------------------ERROR------------------------------------"
+   echo "      Failed to compile. Please Check *build.log* For Compile Errors"
+   echo "-----------------------------------ERROR------------------------------------"
+   echo "exiting script"
+   sleep $SLEEP
+   exit 0
+fi
+
+clear
+echo "--------------------PACKING-------------------------"
+echo "Starting Packing To Recovery Flashable Zip"
+cd out/
+echo "Removing Old Files"
+rm -rf bzImage *.zip
+sleep $SLEEP
+echo "Copying bzImage"
+mv ../arch/x86/boot/bzImage bzImage
+sleep $SLEEP
+echo "Compiling FlareN_"$VER".zip"
+find . -type f -exec zip FlareN_"$VER".zip {} +
+nowf=$(date +"%T")
+cd ..
+echo "Current Date : $NOW"
+echo "Applying Build Settings : done"
+echo "Version Number = $VER"
+echo "cleaning previous files : done"
+echo "Starting Build Process  : done"
+echo "Build complete"
+
+end=`date +%s`
+runtime=$((end-start))
+echo "Completion Time :"
+echo "$runtime sec\n"
+
+echo "------------------- CLEANING------------------------"
+make clean
+echo "----------------------DONE--------------------------"
+
